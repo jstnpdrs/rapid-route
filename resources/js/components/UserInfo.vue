@@ -10,7 +10,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    showEmail: false,
+    showEmail: true,
 });
 
 const { getInitials } = useInitials();
@@ -29,6 +29,6 @@ const showAvatar = computed(() => props.user.avatar && props.user.avatar !== '')
 
     <div class="grid flex-1 text-left text-sm leading-tight">
         <span class="truncate font-medium">{{ user.name }}</span>
-        <span v-if="showEmail" class="truncate text-xs text-muted-foreground">{{ user.email }}</span>
+        <span v-if="showEmail" class="truncate text-xs text-muted-foreground">{{ user.role }}</span>
     </div>
 </template>
