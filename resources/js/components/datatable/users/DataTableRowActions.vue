@@ -43,6 +43,7 @@ const copyId = () => {
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" class="w-[160px]">
       <DropdownMenuItem @click="approveAccount" :data-isApproved="isApproved" class="bg-green-500 data-[isApproved=true]:bg-red-500">{{ isApproved ? 'Set to Pending':'Approve' }}</DropdownMenuItem>
+      <DropdownMenuItem @click="router.visit(route('user.edit',props.row.getValue('id')))">Edit</DropdownMenuItem>
       <DropdownMenuItem @click="copyId">Copy ID</DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuSeparator />

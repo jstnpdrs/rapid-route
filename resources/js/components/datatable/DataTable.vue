@@ -32,7 +32,9 @@ import DataTableToolbar from '@/components/datatable/DataTableToolbar.vue'
 interface DataTableProps {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
-  filters: TData[]
+  filters: []
+  newRecordLink: string
+  createButtonLabel: string
 }
 const props = defineProps<DataTableProps>()
 
@@ -66,7 +68,7 @@ const table = useVueTable({
 
 <template>
   <div class="space-y-4">
-    <DataTableToolbar :table="table" :filters="filters" />
+    <DataTableToolbar :table="table" :filters="filters" :newRecordLink="newRecordLink" :createButtonLabel="createButtonLabel" />
     <div class="rounded-md border">
       <Table>
         <TableHeader>

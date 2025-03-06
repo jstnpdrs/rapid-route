@@ -12,20 +12,6 @@ const props = defineProps(['users'])
 const data = ref(props.users)
 const filters = [
     {
-        column: 'status',
-        title: 'Status',
-        options: [
-            {
-                label: 'Approved',
-                value: 'Approved',
-            },
-            {
-                label: 'Pending',
-                value: 'Pending',
-            },
-        ],
-    },
-    {
         column: 'role',
         title: 'Role',
         options: [
@@ -36,6 +22,20 @@ const filters = [
             {
                 label: 'User',
                 value: 'User',
+            },
+        ],
+    },
+    {
+        column: 'status',
+        title: 'Status',
+        options: [
+            {
+                label: 'Approved',
+                value: 'Approved',
+            },
+            {
+                label: 'Pending',
+                value: 'Pending',
             },
         ],
     }
@@ -66,8 +66,6 @@ const columns = [
         accessorKey: 'id',
         header: ({ column }) => h(DataTableColumnHeader, { column, title: 'ID' }),
         cell: ({ row }) => h('div', { class: 'w-20' }, row.getValue('id')),
-        enableSorting: false,
-        enableHiding: false,
     },
     {
         accessorKey: 'name',
@@ -137,7 +135,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-10">
-            <DataTable :columns="columns" :data="data ?? []" :filters="filters ?? []" />
+            <DataTable :columns="columns" :data="data ?? []" :filters="filters ?? []" :newRecordLink="route('user.create')" createButtonLabel="Create User" />
         </div>
     </AppLayout>
 </template>

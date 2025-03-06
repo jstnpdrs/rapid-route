@@ -17,7 +17,11 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('Dashboard');
     })->middleware(['auth', 'verified'])->name('dashboard1');
     Route::get('users', [UserController::class, 'index'])->name('user.index');
-    Route::middleware(App\Http\Middleware\isAdmin::class)->put('users/{user}', [UserController::class, 'approve'])->name('user.approve');
+    Route::get('users/new', [UserController::class, 'create'])->name('user.create');
+    Route::post('users/new', [UserController::class, 'store'])->name('user.store');
+    Route::get('users/{user}', [UserController::class, 'edit'])->name('user.edit');
+    Route::put('users/{user}', [UserController::class, 'update'])->name('user.update');
+    Route::middleware(App\Http\Middleware\isAdmin::class)->put('users/{user}/approve', [UserController::class, 'approve'])->name('user.approve');
 });
 
 require __DIR__ . '/settings.php';

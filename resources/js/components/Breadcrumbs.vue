@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
-
+import { router } from '@inertiajs/vue3';
 interface BreadcrumbItem {
     title: string;
-    href?: string;
+    href: string;
 }
 
 defineProps<{
@@ -20,7 +20,7 @@ defineProps<{
                         <BreadcrumbPage>{{ item.title }}</BreadcrumbPage>
                     </template>
                     <template v-else>
-                        <BreadcrumbLink :href="item.href">
+                        <BreadcrumbLink @click="router.visit(item.href)" class="cursor-pointer">
                             {{ item.title }}
                         </BreadcrumbLink>
                     </template>
