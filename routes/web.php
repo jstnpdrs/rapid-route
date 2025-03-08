@@ -22,6 +22,9 @@ Route::middleware('auth')->group(function () {
     Route::get('users/{user}', [UserController::class, 'edit'])->name('user.edit');
     Route::put('users/{user}', [UserController::class, 'update'])->name('user.update');
     Route::middleware(App\Http\Middleware\isAdmin::class)->put('users/{user}/approve', [UserController::class, 'approve'])->name('user.approve');
+    Route::get('/test', function () {
+        return Inertia::render('test/MapTest');
+    })->middleware(['auth', 'verified'])->name('testpage');
 });
 
 require __DIR__ . '/settings.php';

@@ -32,8 +32,8 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
     {
-        title: 'Dashboard 1',
-        href: '/dashboard1',
+        title: 'Test',
+        href: '/test',
         icon: LayoutGrid,
     },
     {
