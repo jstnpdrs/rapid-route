@@ -23,7 +23,7 @@ import { Head, router } from '@inertiajs/vue3'
 import { ChevronLeft } from 'lucide-vue-next';
 
 const props = defineProps(['user']);
-const roles = ref(['Administrator', 'User'])
+const roles = ref(['Administrator', 'Responder', 'Dispatcher'])
 
 const formSchema = toTypedSchema(z.object({
     name: z.string(),

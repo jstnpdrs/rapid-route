@@ -20,8 +20,12 @@ const filters = [
                 value: 'Administrator',
             },
             {
-                label: 'User',
-                value: 'User',
+                label: 'Responder',
+                value: 'Responder',
+            },
+            {
+                label: 'Dispatcher',
+                value: 'Dispatcher',
             },
         ],
     },

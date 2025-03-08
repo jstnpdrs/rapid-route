@@ -8,101 +8,169 @@ import { ChevronLeft } from 'lucide-vue-next';
 import { ref, onMounted } from 'vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet-draw/dist/leaflet.draw.css';
+import 'leaflet-draw';
 
-// Breadcrumb setup
 const breadcrumbs: BreadcrumbItem[] = [
   { title: 'Users', href: '/users' },
   { title: 'New User', href: '/users/new' }
 ];
 
-// Map and geolocation setup
 const latitude = ref<number | null>(null);
 const longitude = ref<number | null>(null);
+const map = ref<any>(null);
+const currentPolygon = ref<number[][]>([]);
+const polygons = ref<number[][][]>([]);
+const drawnPolygons = ref<any>(L.featureGroup());
+const isLoading = ref(false);
+const routeLine = ref<any>(null);
+const startMarker = ref<any>(null);
+const endMarker = ref<any>(null);
 
 navigator.geolocation.getCurrentPosition(position => {
   latitude.value = position.coords.latitude;
   longitude.value = position.coords.longitude;
 });
 
-const map = ref<any>(null);
-const currentPolygon = ref<number[][]>([]);
-const polygons = ref<number[][][]>([]);
-const drawnPolygons = ref<any[]>([]);
+const initializeMap = () => {
+  map.value = L.map('map').setView([11.708447, 122.367396], 16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map.value);
 
-// Helper function to add points for polygons
-const addPoint = (e: L.LeafletMouseEvent) => {
-  const { lat, lng } = e.latlng;
-  currentPolygon.value.push([lng, lat]);  // Store as [lon, lat]
-  // L.marker(e.latlng).addTo(map.value);
-  L.circleMarker(e.latlng,{radius:4}).addTo(map.value);
+  map.value.addLayer(drawnPolygons.value);
+  addPolygonDrawTool();
+  handlePolygonCreated();
 };
 
-// Polygon completion
-const completePolygon = () => {
-  if (currentPolygon.value.length < 3) {
-    alert('A polygon must have at least 3 points.');
-    return;
+const addPolygonDrawTool = () => {
+  map.value.addControl(new L.Control.Draw({
+    draw: {
+      polygon: true,
+      polyline: false,
+      rectangle: false,
+      circle: false,
+      marker: false,
+      circlemarker: false
+    },
+    edit: {
+      featureGroup: drawnPolygons.value,
+      remove: false
+    }
+  }));
+};
+
+const handlePolygonCreated = () => {
+  map.value.on(L.Draw.Event.CREATED, (e: any) => {
+    const layer = e.layer;
+    drawnPolygons.value.addLayer(layer);
+    const latLngs = getLatLngs(layer);
+    polygons.value.push([latLngs]);
+    bindPopupToLayer(layer, polygons.value.length - 1);
+  });
+};
+
+const getLatLngs = (layer: any) => {
+  const latLngs = layer.getLatLngs()[0].map((latlng: L.LatLng) => [latlng.lng, latlng.lat]);
+  if (latLngs[0][0] !== latLngs[latLngs.length - 1][0] || latLngs[0][1] !== latLngs[latLngs.length - 1][1]) {
+    latLngs.push(latLngs[0]);
   }
-  currentPolygon.value.push(currentPolygon.value[0]);
-  polygons.value.push([[...currentPolygon.value]]);
-
-  const latLngPolygon = currentPolygon.value.map(([lon, lat]) => [lat, lon]);
-  const polygonLayer = L.polygon(latLngPolygon, { color: 'red' }).bindPopup("<button onClick='console.log('asdasd')'>click me!</button>").addTo(map.value);
-  drawnPolygons.value.push(polygonLayer);
-
-  currentPolygon.value = [];
+  return latLngs;
 };
 
-// Route fetching with polygon avoidance
+const bindPopupToLayer = (layer: any, index: number) => {
+  layer.bindPopup(`
+    <div style="text-align: center;">
+      <button onclick="window.deletePolygon(${index})"
+        style="background-color: red; color: white; border: none; padding: 5px 10px; cursor: pointer;">
+        🗑️ Delete Polygon
+      </button>
+    </div>
+  `).openPopup();
+};
+
+window.deletePolygon = (index: number) => {
+  const layerToRemove = drawnPolygons.value.getLayers()[index];
+  if (layerToRemove) {
+    map.value.removeLayer(layerToRemove);
+    drawnPolygons.value.removeLayer(layerToRemove);
+    polygons.value.splice(index, 1);
+    rebindPopups();
+  }
+};
+
+const rebindPopups = () => {
+  drawnPolygons.value.eachLayer((layer, idx) => {
+    bindPopupToLayer(layer, idx);
+  });
+};
+
 const fetchRoute = async () => {
+  isLoading.value = true;
   const apiKey = '5b3ce3597851110001cf624822687a09a4ba468d929df60948e1cf92';
-  const start = [122.36805081367494, 11.708814765121971]; // [lon, lat]
-  const end = [122.36387729644777, 11.708499597357623];   // [lon, lat]
-  // return console.log(polygons.value);
-  
-  const avoidPolygon = {
-    type: 'MultiPolygon',
-    coordinates: polygons.value
+  const start = [122.36805081367494, 11.708814765121971];
+  const end = [122.36387729644777, 11.708499597357623];
+
+  clearRouteAndMarkers();
+  addMarkers(start, end);
+
+  const body: any = {
+    coordinates: [start, end]
   };
 
-  const url = `https://api.openrouteservice.org/v2/directions/driving-car`;
-  const body = JSON.stringify({
-    coordinates: [start, end],
-    options: { avoid_polygons: avoidPolygon }
-  });
+  if (polygons.value.length > 0) {
+    body.options = {
+      avoid_polygons: {
+        type: 'MultiPolygon',
+        coordinates: polygons.value
+      }
+    };
+  }
 
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: apiKey
-      },
-      body
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
+    const response = await fetchRouteFromAPI(apiKey, body);
     const data = await response.json();
-    if (!data.routes || data.routes.length === 0) {
-      throw new Error('No route found');
-    }
-
-    // Decode the polyline returned by ORS
-    const encodedPolyline = data.routes[0].geometry;
-    const decodedCoordinates = decodePolyline(encodedPolyline);
-
-    // Draw the route on the map
-    const routeLine = L.polyline(decodedCoordinates, { color: 'blue' }).addTo(map.value);
-    map.value.fitBounds(routeLine.getBounds());
+    const decodedCoordinates = decodePolyline(data.routes[0].geometry);
+    drawRoute(decodedCoordinates);
   } catch (error) {
-    console.error('Error fetching route:', error);
+    console.error('Error:', error);
+    alert('Failed to fetch route.');
+  } finally {
+    isLoading.value = false;
   }
 };
 
-// Simple polyline decoder (no external dependencies)
+const fetchRouteFromAPI = (apiKey: string, body: any) => {
+  const url = `https://api.openrouteservice.org/v2/directions/driving-car`;
+  return fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: apiKey
+    },
+    body: JSON.stringify(body)
+  });
+};
+
+const addMarkers = (start: number[], end: number[]) => {
+  startMarker.value = L.circleMarker([start[1], start[0]], {
+    color: 'green'
+  }).addTo(map.value).bindPopup('Starting Point');
+
+  endMarker.value = L.circleMarker([end[1], end[0]], {
+    color: 'red'
+  }).addTo(map.value).bindPopup('End Point');
+};
+
+const drawRoute = (coordinates: [number, number][]) => {
+  routeLine.value = L.polyline(coordinates, { color: 'blue' }).addTo(map.value);
+  map.value.fitBounds(routeLine.value.getBounds());
+};
+
+const clearRouteAndMarkers = () => {
+  if (routeLine.value) map.value.removeLayer(routeLine.value);
+  if (startMarker.value) map.value.removeLayer(startMarker.value);
+  if (endMarker.value) map.value.removeLayer(endMarker.value);
+};
+
 const decodePolyline = (polyline: string): [number, number][] => {
   let index = 0, lat = 0, lng = 0;
   const coordinates: [number, number][] = [];
@@ -135,52 +203,23 @@ const decodePolyline = (polyline: string): [number, number][] => {
   return coordinates;
 };
 
-// Save polygons (optional, adjust to your backend API if needed)
-const savePolygons = async () => {
-  console.log('Saving polygons:', polygons.value);
-};
-
-// Initialize map
-onMounted(() => {
-  map.value = L.map('map').setView([11.708447, 122.367396], 16);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map.value);
-  map.value.on('click', addPoint);
-});
-
+onMounted(initializeMap);
 </script>
 
 <template>
-
   <Head title="Test" />
-
   <AppLayout :breadcrumbs="breadcrumbs">
     <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-10">
       <div class="flex space-x-4 items-center">
         <ChevronLeft @click="router.visit(route('user.index'))"
           class="w-6 h-6 pr-0.5 inline-block hover:bg-slate-900 hover:text-muted rounded-md cursor-pointer" />
-        <h3 class="text-lg font-medium">
-          Update user
-        </h3>
+        <h3 class="text-lg font-medium">Update user</h3>
       </div>
       <Separator />
-      map test test test
-      <div>
-        {{ latitude }} {{ longitude }}
-      </div>
-
-      <div>
-
-        <div id="map" style="width: 100%; height: 500px;"></div>
-        <button @click="completePolygon" :disabled="!currentPolygon.length">
-          Complete Polygon
-        </button>
-        <button @click="savePolygons" :disabled="!polygons.length">
-          Save Polygons
-        </button>
-        <button @click="fetchRoute" :disabled="!polygons.length">
-          Generate Route
-        </button>
-      </div>
+      <div id="map" style="width: 100%; height: 500px;"></div>
+      <button @click="fetchRoute" :disabled="isLoading">
+        {{ isLoading ? 'Generating Route...' : 'Generate Route' }}
+      </button>
     </div>
   </AppLayout>
 </template>

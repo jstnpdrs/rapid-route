@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('username')->unique();
             $table->string('password');
-            $table->string('role')->default('User');
+            $table->string('role')->default('Responder');
             $table->string('status')->default('Pending');
             $table->rememberToken();
             $table->timestamps();

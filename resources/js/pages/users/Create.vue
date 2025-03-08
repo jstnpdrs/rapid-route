@@ -22,7 +22,7 @@ import * as z from 'zod'
 import { Head, router } from '@inertiajs/vue3'
 import { ChevronLeft } from 'lucide-vue-next';
 
-const roles = ref(['Administrator', 'User'])
+const roles = ref(['Administrator', 'Responder', 'Dispatcher'])
 
 const formSchema = toTypedSchema(z.object({
     name: z
@@ -65,7 +65,7 @@ const { handleSubmit, resetForm } = useForm({
     initialValues: {
         name: '',
         username: '',
-        role: 'User',
+        role: 'Responder',
         password: 'password',
         password_confirmation: 'password',
     },
